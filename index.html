@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PillTrack - Flexible Schedule Pill Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        medical: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .touch-action-manipulation { touch-action: manipulation; }
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 antialiased font-sans h-full flex flex-col justify-between select-none">
+
+    <!-- App Header -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 px-4 py-3 shadow-sm">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medical-600 to-brand-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i data-lucide="pill" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-gray-900 dark:text-white leading-none">PillTrack</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" id="current-date-str">Loading date...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1">
+                <button id="theme-toggle" class="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 transition-colors">
+                    <i data-lucide="moon" id="theme-icon" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 overflow-y-auto pb-24 pt-4 px-4 max-w-md mx-auto w-full no-scrollbar">
+
+        <!-- TAB 1: TODAY'S CHECKLIST VIEW -->
+        <section id="tab-today" class="space-y-5">
+            <!-- Daily Progress Card -->
+            <div class="bg-gradient-to-br from-medical-600 to-medical-700 rounded-2xl p-4 text-white shadow-lg shadow-medical-600/20">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <span class="text-xs uppercase font-semibold tracking-wider opacity-80">Today's Schedule</span>
+                        <h2 class="text-2xl font-bold" id="progress-status-text">0 of 0 taken</h2>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-xl font-bold" id="progress-percentage">
+                        0%
+                    </div>
+                </div>
+                <!-- Progress Bar Container -->
+                <div class="w-full bg-black/20 rounded-full h-3 overflow-hidden p-0.5">
+                    <div id="progress-bar-fill" class="bg-white h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Scheduled Pill Checklist -->
+            <div>
+                <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2.5 px-1">Due Today</h3>
+                <div id="today-pill-list" class="space-y-3">
+                    <!-- Dynamic Pill Items rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: 30-DAY HISTORY VIEW -->
+        <section id="tab-history" class="space-y-5 hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/60">
+                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center justify-between">
+                    <span>30-Day Adherence Overview</span>
+                    <i data-lucide="trending-up" class="w-4 h-4 text-brand-500"></i>
+                </h3>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+                        <span class="block text-xl font-bold text-brand-600 dark:text-brand-400" id="stat-adherence-rate">0%</span>
+                        <span class="text-[10px] uppercase font-semibold text-gray-400">Adherence</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+                        <span class="block text-xl font-bold text-medical-600 dark:text-medical-400" id="stat-total-taken">0</span>
+                        <span class="text-[10px] uppercase font-semibold text-gray-400">Doses Taken</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+                        <span class="block text-xl font-bold text-amber-500" id="stat-streak">0 Days</span>
+                        <span class="text-[10px] uppercase font-semibold text-gray-400">Current Streak</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2.5 px-1 flex justify-between items-center">
+                    <span>Past 30 Days Record</span>
+                    <span class="text-[11px] font-normal text-gray-400 lowercase">auto-purged after 30d</span>
+                </h3>
+                <div id="calendar-strip" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    <!-- Dynamic calendar days rendered here -->
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/60 space-y-3">
+                <div class="flex justify-between items-center border-b border-gray-100 dark:border-gray-700 pb-2">
+                    <h4 class="font-bold text-sm text-gray-800 dark:text-gray-200" id="history-selected-date-title">Selected Date</h4>
+                    <span id="history-selected-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">Complete</span>
+                </div>
+                <div id="history-log-list" class="space-y-2.5">
+                    <!-- Logs for selected date rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: MANAGE PILLS VIEW -->
+        <section id="tab-manage" class="space-y-4 hidden">
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">Medication Cabinet</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Manage daily, alternate-day, and weekly pills</p>
+                </div>
+                <button onclick="openPillModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white text-xs font-semibold shadow-sm transition-colors">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Add Pill
+                </button>
+            </div>
+
+            <div id="manage-pill-list" class="space-y-3">
+                <!-- Registered pills list rendered here -->
+            </div>
+        </section>
+
+        <!-- TAB 4: SETTINGS VIEW -->
+        <section id="tab-settings" class="space-y-4 hidden">
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Settings & Data Management</h2>
+
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/60 space-y-4">
+                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-200">Backup & Storage</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                    Your data is stored locally in your device browser. Export a JSON backup file anytime or restore from a backup.
+                </p>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="exportData()" class="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <i data-lucide="download" class="w-4 h-4"></i> Export JSON
+                    </button>
+                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Import JSON
+                        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-red-100 dark:border-red-900/30 space-y-3">
+                <h3 class="text-sm font-bold text-red-600 dark:text-red-400">Reset Application</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Clear all registered medications and log history.</p>
+                <button onclick="confirmClearAllData()" class="w-full py-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 font-semibold text-xs border border-red-200 dark:border-red-800/50 hover:bg-red-100 transition-colors">
+                    Clear All Data
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-30 px-2 py-1.5 shadow-lg">
+        <div class="max-w-md mx-auto flex justify-around items-center">
+            <button onclick="switchTab('today')" id="nav-today" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-medical-600 dark:text-medical-400 transition-all">
+                <i data-lucide="check-square" class="w-5 h-5"></i>
+                <span class="text-[11px] font-medium mt-1">Today</span>
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-400 dark:text-gray-500 hover:text-gray-600 transition-all">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span class="text-[11px] font-medium mt-1">30 Days</span>
+            </button>
+            <button onclick="switchTab('manage')" id="nav-manage" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-400 dark:text-gray-500 hover:text-gray-600 transition-all">
+                <i data-lucide="pill" class="w-5 h-5"></i>
+                <span class="text-[11px] font-medium mt-1">Cabinet</span>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-400 dark:text-gray-500 hover:text-gray-600 transition-all">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span class="text-[11px] font-medium mt-1">Settings</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Modal: Add / Edit Pill -->
+    <div id="pill-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-200">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-gray-100 dark:border-gray-700 pb-3">
+                <h3 class="text-base font-bold text-gray-900 dark:text-white" id="modal-title">Add Medication</h3>
+                <button onclick="closePillModal()" class="p-1 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="pill-form" onsubmit="handlePillSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="pill-id">
+
+                <div>
+                    <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Medication Name *</label>
+                    <input type="text" id="pill-name" required placeholder="e.g. Amoxicillin, Vitamin D3" class="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-medical-500 outline-none text-sm">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Dosage *</label>
+                        <input type="text" id="pill-dosage" required placeholder="e.g. 500mg, 1 tablet" class="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-medical-500 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Frequency *</label>
+                        <select id="pill-frequency" required onchange="handleFrequencyChange(this.value)" class="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-medical-500 outline-none text-sm">
+                            <option value="daily">Daily</option>
+                            <option value="alternate">Every Other Day</option>
+                            <option value="weekly">Weekly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Frequency Option: Start Date for Every Other Day -->
+                <div id="start-date-container" class="hidden">
+                    <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">First Active Date *</label>
+                    <input type="date" id="pill-start-date" class="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-medical-500 outline-none text-sm">
+                    <p class="text-[10px] text-gray-400 mt-1">This pill will be scheduled every 2 days starting from this date.</p>
+                </div>
+
+                <!-- Frequency Option: Specific Days for Weekly -->
+                <div id="weekly-days-container" class="hidden">
+                    <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Scheduled Days *</label>
+                    <div class="flex justify-between gap-1 pt-1" id="days-picker">
+                        <button type="button" data-day="0" onclick="toggleDaySelection(this)" class="day-btn w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center font-bold text-xs">S</button>
+                        <button type="button" data-day="1" onclick="toggleDaySelection(this)" class="day-btn w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center font-bold text-xs">M</button>
+                        <button type="button" data-day="2" onclick="toggleDaySelection(this)" class="day-btn w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center font-bold text-xs">T</button>
+                        <button type="button" data-day="3" onclick="toggleDaySelection(this)" class="day-btn w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center font-bold text-xs">W</button>
+                        <button type="button" data-day="4" onclick="toggleDaySelection(this)" class="day-btn w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center font-bold text-xs">T</button>
+                        <button type="button" data-day="5" onclick="toggleDaySelection(this)" class="day-btn w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center font-bold text-xs">F</button>
+                        <button type="button" data-day="6" onclick="toggleDaySelection(this)" class="day-btn w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center font-bold text-xs">S</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Instructions / Notes (Optional)</label>
+                    <input type="text" id="pill-notes" placeholder="e.g. Take with meals, after food" class="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-medical-500 outline-none text-sm">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Pill Color Badge</label>
+                    <div class="flex gap-3 pt-1" id="color-picker">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pill-color" value="blue" checked class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-blue-500 inline-block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-blue-500"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pill-color" value="emerald" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-emerald-500 inline-block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-emerald-500"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pill-color" value="purple" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-purple-500 inline-block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-purple-500"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pill-color" value="amber" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-amber-500 inline-block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-amber-500"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pill-color" value="rose" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-rose-500 inline-block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-rose-500"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="button" onclick="closePillModal()" class="w-1/2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold">Cancel</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-medical-600 text-white font-semibold shadow-md hover:bg-medical-700">Save Pill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Toast Element -->
+    <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+        <i data-lucide="check-circle" class="w-4 h-4 text-brand-500"></i>
+        <span id="toast-message">Action successful</span>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        const STORAGE_KEY_PILLS = 'pilltrack_pills_v2';
+        const STORAGE_KEY_LOGS = 'pilltrack_logs_v2';
+
+        let pills = [];
+        let logs = {}; // Schema: { "YYYY-MM-DD": [ { pillId, takenAt } ] }
+        let selectedHistoryDate = getTodayKey();
+        let selectedWeeklyDays = [];
+
+        // Sample initial medications showing various frequencies
+        const defaultPills = [
+            { id: '1', name: 'Multivitamin', dosage: '1 Tablet', frequency: 'daily', notes: 'Daily in the morning', color: 'emerald' },
+            { id: '2', name: 'Omega 3', dosage: '1 Capsule', frequency: 'alternate', startDate: getTodayKey(), notes: 'Every other day', color: 'blue' },
+            { id: '3', name: 'B-Complex', dosage: '50mg', frequency: 'weekly', days: [1, 3, 5], notes: 'Mon, Wed, Fri', color: 'purple' }
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadState();
+            purgeLogsOlderThan30Days();
+            updateCurrentDateHeader();
+            renderAllViews();
+            lucide.createIcons();
+        });
+
+        function getTodayKey() {
+            return formatDateKey(new Date());
+        }
+
+        function formatDateKey(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function updateCurrentDateHeader() {
+            const now = new Date();
+            const options = { weekday: 'short', month: 'short', day: 'numeric' };
+            document.getElementById('current-date-str').textContent = now.toLocaleDateString('en-US', options);
+        }
+
+        function loadState() {
+            const savedPills = localStorage.getItem(STORAGE_KEY_PILLS);
+            const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+
+            if (savedPills) {
+                pills = JSON.parse(savedPills);
+            } else {
+                pills = [...defaultPills];
+                savePills();
+            }
+
+            logs = savedLogs ? JSON.parse(savedLogs) : {};
+        }
+
+        function savePills() {
+            localStorage.setItem(STORAGE_KEY_PILLS, JSON.stringify(pills));
+        }
+
+        function saveLogs() {
+            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+        }
+
+        function purgeLogsOlderThan30Days() {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 30);
+            const cutoffKey = formatDateKey(cutoff);
+
+            let changed = false;
+            Object.keys(logs).forEach(dateKey => {
+                if (dateKey < cutoffKey) {
+                    delete logs[dateKey];
+                    changed = true;
+                }
+            });
+
+            if (changed) saveLogs();
+        }
+
+        /* --- FREQUENCY DATES CALCULATION --- */
+        function isPillScheduledForDate(pill, dateKey) {
+            const targetDate = new Date(dateKey + 'T00:00:00');
+            
+            if (pill.frequency === 'daily') {
+                return true;
+            }
+
+            if (pill.frequency === 'alternate') {
+                if (!pill.startDate) return true;
+                const startDate = new Date(pill.startDate + 'T00:00:00');
+                const diffTime = targetDate.getTime() - startDate.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+                return diffDays >= 0 && (diffDays % 2 === 0);
+            }
+
+            if (pill.frequency === 'weekly') {
+                const dayOfWeek = targetDate.getDay(); // 0 = Sun, 1 = Mon ...
+                return Array.isArray(pill.days) && pill.days.includes(dayOfWeek);
+            }
+
+            return true;
+        }
+
+        function getFrequencyBadgeText(pill) {
+            if (pill.frequency === 'daily') return 'Daily';
+            if (pill.frequency === 'alternate') return 'Every 2 Days';
+            if (pill.frequency === 'weekly') {
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const daysStr = (pill.days || []).map(d => dayNames[d]).join(', ');
+                return daysStr ? `Weekly (${daysStr})` : 'Weekly';
+            }
+            return 'Scheduled';
+        }
+
+        /* --- RENDER VIEWS --- */
+        function renderAllViews() {
+            renderTodayView();
+            renderHistoryView();
+            renderManageView();
+            lucide.createIcons();
+        }
+
+        /* --- TODAY VIEW --- */
+        function renderTodayView() {
+            const todayKey = getTodayKey();
+            const todayLogs = logs[todayKey] || [];
+            const pillListEl = document.getElementById('today-pill-list');
+
+            // Filter pills scheduled for today
+            const scheduledToday = pills.filter(pill => isPillScheduledForDate(pill, todayKey));
+            
+            const totalScheduled = scheduledToday.length;
+            const takenCount = scheduledToday.filter(p => todayLogs.some(l => l.pillId === p.id)).length;
+            const percentage = totalScheduled > 0 ? Math.round((takenCount / totalScheduled) * 100) : 0;
+
+            document.getElementById('progress-status-text').textContent = `${takenCount} of ${totalScheduled} taken`;
+            document.getElementById('progress-percentage').textContent = `${percentage}%`;
+            document.getElementById('progress-bar-fill').style.width = `${percentage}%`;
+
+            if (scheduledToday.length === 0) {
+                pillListEl.innerHTML = `
+                    <div class="text-center py-10 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                        <i data-lucide="check-circle-2" class="w-10 h-10 text-brand-500 mx-auto mb-2"></i>
+                        <h4 class="font-bold text-sm text-gray-800 dark:text-gray-200">No Pills Due Today</h4>
+                        <p class="text-xs text-gray-400 mt-1">Enjoy your day or add new medications to your cabinet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            pillListEl.innerHTML = scheduledToday.map(pill => {
+                const isTaken = todayLogs.some(l => l.pillId === pill.id);
+                const logEntry = todayLogs.find(l => l.pillId === pill.id);
+                const takenTimeStr = logEntry ? new Date(logEntry.takenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                const badgeColors = {
+                    blue: 'bg-blue-500',
+                    emerald: 'bg-emerald-500',
+                    purple: 'bg-purple-500',
+                    amber: 'bg-amber-500',
+                    rose: 'bg-rose-500'
+                };
+
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-3.5 shadow-sm border border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-3 transition-all">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-10 rounded-full ${badgeColors[pill.color] || 'bg-brand-500'}"></div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-sm ${isTaken ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-100'}">${escapeHtml(pill.name)}</h4>
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium">${pill.dosage}</span>
+                                </div>
+                                <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+                                    <span class="font-medium text-medical-600 dark:text-medical-400">${getFrequencyBadgeText(pill)}</span>
+                                    ${pill.notes ? `• <span>${escapeHtml(pill.notes)}</span>` : ''}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div>
+                            ${isTaken ? `
+                                <button onclick="togglePillTaken('${pill.id}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 text-xs font-bold transition-all active:scale-95">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                                    <span>${takenTimeStr}</span>
+                                </button>
+                            ` : `
+                                <button onclick="togglePillTaken('${pill.id}')" class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white text-xs font-semibold shadow-sm transition-all active:scale-95">
+                                    Take
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function togglePillTaken(pillId) {
+            const todayKey = getTodayKey();
+            if (!logs[todayKey]) logs[todayKey] = [];
+
+            const index = logs[todayKey].findIndex(l => l.pillId === pillId);
+            if (index > -1) {
+                logs[todayKey].splice(index, 1);
+                showToast("Marked as not taken");
+            } else {
+                logs[todayKey].push({
+                    pillId: pillId,
+                    takenAt: new Date().toISOString()
+                });
+                showToast("Dose recorded!");
+            }
+
+            saveLogs();
+            renderAllViews();
+        }
+
+        /* --- 30-DAY HISTORY VIEW --- */
+        function renderHistoryView() {
+            const past30Days = [];
+            let totalPossibleDoses = 0;
+            let totalActualTaken = 0;
+            let currentStreak = 0;
+            let streakActive = true;
+
+            const today = new Date();
+            for (let i = 0; i < 30; i++) {
+                const d = new Date();
+                d.setDate(today.getDate() - i);
+                const key = formatDateKey(d);
+                past30Days.push({ dateKey: key, dateObj: d });
+
+                const dayLogs = logs[key] || [];
+                const scheduledForDay = pills.filter(p => isPillScheduledForDate(p, key));
+                const takenCount = scheduledForDay.filter(p => dayLogs.some(l => l.pillId === p.id)).length;
+                const totalPills = scheduledForDay.length;
+
+                totalPossibleDoses += totalPills;
+                totalActualTaken += takenCount;
+
+                if (streakActive) {
+                    if (totalPills > 0 && takenCount === totalPills) {
+                        currentStreak++;
+                    } else if (i > 0 && totalPills > 0) { 
+                        streakActive = false;
+                    }
+                }
+            }
+
+            const adherencePercentage = totalPossibleDoses > 0 ? Math.round((totalActualTaken / totalPossibleDoses) * 100) : 0;
+
+            document.getElementById('stat-adherence-rate').textContent = `${adherencePercentage}%`;
+            document.getElementById('stat-total-taken').textContent = totalActualTaken;
+            document.getElementById('stat-streak').textContent = `${currentStreak} Days`;
+
+            const stripEl = document.getElementById('calendar-strip');
+            stripEl.innerHTML = past30Days.map(item => {
+                const key = item.dateKey;
+                const dayLogs = logs[key] || [];
+                const isSelected = key === selectedHistoryDate;
+
+                const scheduledForDay = pills.filter(p => isPillScheduledForDate(p, key));
+                const takenCount = scheduledForDay.filter(p => dayLogs.some(l => l.pillId === p.id)).length;
+                const totalPills = scheduledForDay.length;
+
+                let statusDotClass = 'bg-gray-300 dark:bg-gray-600';
+                if (totalPills > 0) {
+                    if (takenCount === totalPills) statusDotClass = 'bg-brand-500';
+                    else if (takenCount > 0) statusDotClass = 'bg-amber-500';
+                    else statusDotClass = 'bg-red-400';
+                }
+
+                const dayName = item.dateObj.toLocaleDateString('en-US', { weekday: 'narrow' });
+                const dayNum = item.dateObj.getDate();
+
+                return `
+                    <button onclick="selectHistoryDate('${key}')" class="flex-shrink-0 w-12 py-2.5 rounded-2xl flex flex-col items-center justify-center border transition-all ${
+                        isSelected 
+                            ? 'bg-medical-600 text-white border-medical-600 shadow-md scale-105' 
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-100 dark:border-gray-700/60'
+                    }">
+                        <span class="text-[10px] uppercase font-bold opacity-80">${dayName}</span>
+                        <span class="text-sm font-bold my-0.5">${dayNum}</span>
+                        <span class="w-2 h-2 rounded-full ${statusDotClass}"></span>
+                    </button>
+                `;
+            }).join('');
+
+            renderSelectedHistoryLog();
+        }
+
+        function selectHistoryDate(dateKey) {
+            selectedHistoryDate = dateKey;
+            renderHistoryView();
+        }
+
+        function renderSelectedHistoryLog() {
+            const listEl = document.getElementById('history-log-list');
+            const titleEl = document.getElementById('history-selected-date-title');
+            const badgeEl = document.getElementById('history-selected-badge');
+
+            const dateParts = selectedHistoryDate.split('-');
+            const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            titleEl.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+            const dayLogs = logs[selectedHistoryDate] || [];
+            const scheduledForDay = pills.filter(p => isPillScheduledForDate(p, selectedHistoryDate));
+            const takenCount = scheduledForDay.filter(p => dayLogs.some(l => l.pillId === p.id)).length;
+            const totalPills = scheduledForDay.length;
+
+            if (totalPills === 0) {
+                badgeEl.textContent = 'No Medications Due';
+                badgeEl.className = 'px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+            } else if (takenCount === totalPills) {
+                badgeEl.textContent = '100% Adherence';
+                badgeEl.className = 'px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300';
+            } else {
+                badgeEl.textContent = `${takenCount}/${totalPills} Taken`;
+                badgeEl.className = 'px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+            }
+
+            if (scheduledForDay.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-gray-400 py-2">No pills were scheduled for this date.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = scheduledForDay.map(pill => {
+                const log = dayLogs.find(l => l.pillId === pill.id);
+                const isTaken = !!log;
+                const timeStr = isTaken ? new Date(log.takenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Not Taken';
+
+                return `
+                    <div class="flex items-center justify-between text-xs py-1.5 border-b border-gray-50 dark:border-gray-700/40 last:border-0">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="${isTaken ? 'check-circle' : 'x-circle'}" class="w-4 h-4 ${isTaken ? 'text-brand-500' : 'text-gray-300 dark:text-gray-600'}"></i>
+                            <span class="font-semibold text-gray-800 dark:text-gray-200">${escapeHtml(pill.name)}</span>
+                            <span class="text-gray-400">(${pill.dosage})</span>
+                        </div>
+                        <span class="${isTaken ? 'text-gray-500 font-medium' : 'text-red-400 dark:text-red-400'}">${timeStr}</span>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        /* --- MANAGE CABINET VIEW --- */
+        function renderManageView() {
+            const cabinetEl = document.getElementById('manage-pill-list');
+
+            if (pills.length === 0) {
+                cabinetEl.innerHTML = `
+                    <div class="text-center py-10 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                        <i data-lucide="pill" class="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2"></i>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Your cabinet is empty.</p>
+                        <button onclick="openPillModal()" class="mt-3 px-4 py-2 bg-medical-600 text-white rounded-xl text-xs font-semibold">Add Your First Pill</button>
+                    </div>
+                `;
+                return;
+            }
+
+            cabinetEl.innerHTML = pills.map(pill => `
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-sm text-gray-900 dark:text-white">${escapeHtml(pill.name)}</h4>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-medical-50 dark:bg-medical-900/40 text-medical-700 dark:text-medical-300 font-semibold">${pill.dosage}</span>
+                        </div>
+                        <p class="text-xs text-gray-400">
+                            Schedule: <span class="text-gray-600 dark:text-gray-300 font-medium">${getFrequencyBadgeText(pill)}</span> 
+                            ${pill.notes ? `• ${escapeHtml(pill.notes)}` : ''}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                        <button onclick="editPill('${pill.id}')" class="p-2 rounded-xl text-gray-400 hover:text-medical-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deletePill('${pill.id}')" class="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /* --- MODAL & CRUD LOGIC --- */
+        function handleFrequencyChange(val) {
+            const startDateContainer = document.getElementById('start-date-container');
+            const weeklyDaysContainer = document.getElementById('weekly-days-container');
+
+            startDateContainer.classList.add('hidden');
+            weeklyDaysContainer.classList.add('hidden');
+
+            if (val === 'alternate') {
+                startDateContainer.classList.remove('hidden');
+                if (!document.getElementById('pill-start-date').value) {
+                    document.getElementById('pill-start-date').value = getTodayKey();
+                }
+            } else if (val === 'weekly') {
+                weeklyDaysContainer.classList.remove('hidden');
+            }
+        }
+
+        function toggleDaySelection(btn) {
+            const dayNum = parseInt(btn.getAttribute('data-day'));
+            if (selectedWeeklyDays.includes(dayNum)) {
+                selectedWeeklyDays = selectedWeeklyDays.filter(d => d !== dayNum);
+                btn.classList.remove('bg-medical-600', 'text-white');
+                btn.classList.add('border-gray-200', 'dark:border-gray-700');
+            } else {
+                selectedWeeklyDays.push(dayNum);
+                btn.classList.add('bg-medical-600', 'text-white');
+                btn.classList.remove('border-gray-200', 'dark:border-gray-700');
+            }
+        }
+
+        function openPillModal(pillId = null) {
+            const modal = document.getElementById('pill-modal');
+            const form = document.getElementById('pill-form');
+
+            form.reset();
+            document.getElementById('pill-id').value = '';
+            selectedWeeklyDays = [];
+
+            // Reset day buttons
+            document.querySelectorAll('.day-btn').forEach(btn => {
+                btn.classList.remove('bg-medical-600', 'text-white');
+                btn.classList.add('border-gray-200', 'dark:border-gray-700');
+            });
+
+            if (pillId) {
+                const pill = pills.find(p => p.id === pillId);
+                if (pill) {
+                    document.getElementById('modal-title').textContent = 'Edit Medication';
+                    document.getElementById('pill-id').value = pill.id;
+                    document.getElementById('pill-name').value = pill.name;
+                    document.getElementById('pill-dosage').value = pill.dosage;
+                    document.getElementById('pill-frequency').value = pill.frequency;
+                    document.getElementById('pill-notes').value = pill.notes || '';
+
+                    if (pill.frequency === 'alternate') {
+                        document.getElementById('pill-start-date').value = pill.startDate || getTodayKey();
+                    } else if (pill.frequency === 'weekly' && Array.isArray(pill.days)) {
+                        selectedWeeklyDays = [...pill.days];
+                        selectedWeeklyDays.forEach(d => {
+                            const btn = document.querySelector(`.day-btn[data-day="${d}"]`);
+                            if (btn) {
+                                btn.classList.add('bg-medical-600', 'text-white');
+                                btn.classList.remove('border-gray-200', 'dark:border-gray-700');
+                            }
+                        });
+                    }
+
+                    handleFrequencyChange(pill.frequency);
+
+                    const colorRadio = form.querySelector(`input[name="pill-color"][value="${pill.color}"]`);
+                    if (colorRadio) colorRadio.checked = true;
+                }
+            } else {
+                document.getElementById('modal-title').textContent = 'Add Medication';
+                handleFrequencyChange('daily');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closePillModal() {
+            document.getElementById('pill-modal').classList.add('hidden');
+        }
+
+        function handlePillSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('pill-id').value;
+            const name = document.getElementById('pill-name').value.trim();
+            const dosage = document.getElementById('pill-dosage').value.trim();
+            const frequency = document.getElementById('pill-frequency').value;
+            const notes = document.getElementById('pill-notes').value.trim();
+            const color = document.querySelector('input[name="pill-color"]:checked').value;
+
+            if (!name || !dosage) return;
+
+            let startDate = null;
+            let days = [];
+
+            if (frequency === 'alternate') {
+                startDate = document.getElementById('pill-start-date').value || getTodayKey();
+            } else if (frequency === 'weekly') {
+                if (selectedWeeklyDays.length === 0) {
+                    showToast('Select at least one day for weekly pills');
+                    return;
+                }
+                days = [...selectedWeeklyDays];
+            }
+
+            if (id) {
+                const pill = pills.find(p => p.id === id);
+                if (pill) {
+                    pill.name = name;
+                    pill.dosage = dosage;
+                    pill.frequency = frequency;
+                    pill.startDate = startDate;
+                    pill.days = days;
+                    pill.notes = notes;
+                    pill.color = color;
+                    showToast('Medication updated');
+                }
+            } else {
+                const newPill = {
+                    id: Date.now().toString(),
+                    name,
+                    dosage,
+                    frequency,
+                    startDate,
+                    days,
+                    notes,
+                    color
+                };
+                pills.push(newPill);
+                showToast('Medication added');
+            }
+
+            savePills();
+            closePillModal();
+            renderAllViews();
+        }
+
+        function editPill(id) {
+            openPillModal(id);
+        }
+
+        function deletePill(id) {
+            pills = pills.filter(p => p.id !== id);
+            savePills();
+            renderAllViews();
+            showToast('Medication deleted');
+        }
+
+        /* --- NAVIGATION & BACKUP LOGIC --- */
+        function switchTab(tabName) {
+            const tabs = ['today', 'history', 'manage', 'settings'];
+            tabs.forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                navBtn.className = 'nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-400 dark:text-gray-500 hover:text-gray-600 transition-all';
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            activeBtn.className = 'nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-medical-600 dark:text-medical-400 font-bold transition-all';
+
+            renderAllViews();
+        }
+
+        function exportData() {
+            const data = {
+                pills: pills,
+                logs: logs,
+                exportedAt: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pilltrack-backup-${getTodayKey()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Export file downloaded');
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (parsed.pills && parsed.logs) {
+                        pills = parsed.pills;
+                        logs = parsed.logs;
+                        savePills();
+                        saveLogs();
+                        renderAllViews();
+                        showToast('Data imported successfully');
+                    } else {
+                        showToast('Invalid backup file');
+                    }
+                } catch(err) {
+                    showToast('Failed to parse file');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function confirmClearAllData() {
+            if (confirm("Are you sure you want to delete all pills and history? This cannot be undone.")) {
+                pills = [];
+                logs = {};
+                localStorage.removeItem(STORAGE_KEY_PILLS);
+                localStorage.removeItem(STORAGE_KEY_LOGS);
+                renderAllViews();
+                showToast('All data cleared');
+            }
+        }
+
+        function initTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('theme-icon').setAttribute('data-lucide', 'sun');
+            }
+
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                document.getElementById('theme-icon').setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                lucide.createIcons();
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+    </script>
+</body>
+</html>
